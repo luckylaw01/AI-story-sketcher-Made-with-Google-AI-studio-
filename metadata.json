@@ -1,0 +1,5 @@
+{
+  "name": "Copy of Gemini Story Sketcher",
+  "description": "An application that generates a story based on a user's prompt, reads it aloud, and simultaneously sketches illustrations for each part of the story.",
+  "requestFramePermissions": []
+}

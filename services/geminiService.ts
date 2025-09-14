@@ -49,9 +49,13 @@ const storyPlanSchema = {
 export const generateStoryPlan = async (prompt: string): Promise<ProgressiveStoryStep[]> => {
   try {
     const storyPrompt = `You are a cinematic storyteller and illustrator for children. Based on the user's idea, create a simple, charming story. Break the story down into a sequence of 8 short, speakable sentences.
+The visual style should be a simple, colorful children's book illustration on a canvas.
+
 For each sentence, provide:
-1.  A specific, incremental instruction for an image editing AI to draw on a canvas. The first instruction must create the background scene. Subsequent instructions must add or modify elements on the existing image. The visual style should be a simple, colorful children's book illustration.
-2.  Animation instructions ('zoom' and 'pan') to create a dynamic camera effect. Use these to guide the viewer's focus. For example, zoom in on a new character, or pan across the scene to reveal something new. The pan values are CSS transform-origin percentages.
+1.  A specific, incremental instruction for an image editing AI. The first instruction must create the background scene. Subsequent instructions must add or modify elements on the existing image.
+    - CRITICAL: To make the change obvious, the new element must be drawn in a **contrasting or complementary color** to its surroundings.
+    - CRITICAL: Also, use an **"annotation pen"** to highlight the change, for example: "add a happy sun in the top right corner, circled with a glowing yellow arrow".
+2.  Animation instructions ('zoom' and 'pan') to create a dynamic "Ken Burns" camera effect. Use these to guide the viewer's focus. Make the camera movements feel deliberate and cinematic. For example, zoom in on a new character, or pan across the scene. The pan values are CSS transform-origin percentages.
 
 User idea: "${prompt}"`;
     

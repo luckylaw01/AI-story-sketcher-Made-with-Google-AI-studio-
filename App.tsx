@@ -20,9 +20,12 @@ const App: React.FC = () => {
   const [currentAnimationStyle, setCurrentAnimationStyle] = useState<AnimationStyle | null>(null);
 
   const playbackController = useRef({ isPlaying: false });
+  const generationController = useRef({ isCancelled: false });
+
 
   const resetState = useCallback(() => {
     playbackController.current.isPlaying = false;
+    generationController.current.isCancelled = true; // Cancel any ongoing generation
     window.speechSynthesis.cancel();
     setPrompt('');
     setStorySteps([]);
@@ -98,6 +101,7 @@ const App: React.FC = () => {
 
     // Manually reset state for a new story, but keep the prompt for the API call
     playbackController.current.isPlaying = false;
+    generationController.current.isCancelled = false; // Reset cancellation flag
     window.speechSynthesis.cancel();
     setStorySteps([]);
     setImageUrl(null);
@@ -108,6 +112,9 @@ const App: React.FC = () => {
     try {
       // 1. Generate the story plan
       const plan = await generateStoryPlan(prompt);
+
+      if (generationController.current.isCancelled) return;
+
       if (!plan || plan.length === 0) {
         throw new Error("Story generation failed to return any steps.");
       }
@@ -119,19 +126,25 @@ const App: React.FC = () => {
       let currentImageB64 = getBlankCanvas();
 
       for (const step of plan) {
-         if (!playbackController.current.isPlaying) { // check for cancellation
-            currentImageB64 = await editImage(currentImageB64, step.imageEditPrompt);
-            stepsWithImages.push({ ...step, imageData: currentImageB64 });
+         if (generationController.current.isCancelled) {
+            console.log("Image generation cancelled.");
+            return;
          }
+         currentImageB64 = await editImage(currentImageB64, step.imageEditPrompt);
+         stepsWithImages.push({ ...step, imageData: currentImageB64 });
       }
+      
+      if (generationController.current.isCancelled) return;
       
       setStorySteps(stepsWithImages);
       setLoadingState(LoadingState.PLAYING);
 
     } catch (err) {
       console.error(err);
-      setError(err instanceof Error ? err.message : 'An unknown error occurred while generating the story.');
-      setLoadingState(LoadingState.IDLE);
+      if (!generationController.current.isCancelled) {
+          setError(err instanceof Error ? err.message : 'An unknown error occurred while generating the story.');
+          setLoadingState(LoadingState.IDLE);
+      }
     }
   };
   
@@ -174,12 +187,12 @@ const App: React.FC = () => {
                 isLoading={isProcessing}
               />
             )}
-             {loadingState !== LoadingState.GENERATING_PLAN && loadingState !== LoadingState.GENERATING_IMAGES && currentImageUrl && (
+             {loadingState !== LoadingState.GENERATING_PLAN && loadingState !== LoadingState.GENERATING_IMAGES && (
                 <button
                     onClick={resetState}
                     className="mt-4 px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-opacity-75 transition-colors duration-200"
                 >
-                    {isPlaying ? 'Stop & Reset' : 'Create Another Story'}
+                    {isProcessing || isPlaying ? 'Stop & Reset' : 'Create Another Story'}
                 </button>
             )}
             {error && <p className="text-red-400 mt-4 text-center">{error}</p>}
